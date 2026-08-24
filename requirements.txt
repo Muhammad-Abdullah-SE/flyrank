@@ -1,0 +1,4 @@
+# FlyRank has NO external dependencies.
+# Everything runs on the Python 3.9+ standard library:
+#   http.server, sqlite3, hashlib, secrets, json, urllib, threading, unittest
+# There is nothing to install — this file exists to say exactly that.

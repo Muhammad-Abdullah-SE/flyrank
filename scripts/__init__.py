@@ -1,0 +1,1 @@
+# Makes `scripts` importable as a package (used by tests and CLI entry points).

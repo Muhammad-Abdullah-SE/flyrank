@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FlyRank — Flight Deal Radar</title>
+<style>
+  :root {
+    --bg: #0b1f24; --panel: #103037; --panel2: #16424b; --line: #1e4d57;
+    --text: #e8f4f0; --muted: #8fb5ad; --accent: #5ee6a8; --accent2: #37c884;
+    --warn: #f5b942; --danger: #f0716b; --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #0f2b31, #0b1f24);
+  }
+  .logo { font-weight: 800; font-size: 20px; letter-spacing: .5px; }
+  .logo span { color: var(--accent); }
+  .sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; }
+  nav button {
+    background: transparent; color: var(--muted); border: 1px solid transparent;
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13.5px;
+  }
+  nav button:hover { color: var(--text); background: var(--panel); }
+  nav button.active { color: var(--accent); border-color: var(--accent2); background: var(--panel); }
+  #authBtn {
+    background: var(--accent); color: #06231a; border: none; font-weight: 700;
+    padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 13.5px;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 22px; }
+  .panel {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 18px; margin-bottom: 18px;
+  }
+  h2 { font-size: 16px; margin-bottom: 10px; }
+  .muted { color: var(--muted); font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th {
+    text-align: left; color: var(--muted); font-weight: 600;
+    padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: 12px;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+  td { padding: 9px 10px; border-bottom: 1px solid #143840; }
+  tr:hover td { background: var(--panel2); }
+  .price { font-weight: 700; color: var(--accent); }
+  .score { font-weight: 700; }
+  .score.hot { color: var(--warn); }
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 20px;
+    font-size: 11px; font-weight: 700;
+  }
+  .badge.green { background: #0e3a2c; color: var(--accent); }
+  .badge.gray { background: #24404a; color: var(--muted); }
+  .badge.yellow { background: #3d3413; color: var(--warn); }
+  .badge.red { background: #46181a; color: var(--danger); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  input, select, textarea {
+    background: #0d282e; color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 12px; font-size: 13.5px; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
+  textarea { width: 100%; min-height: 90px; resize: vertical; }
+  button.act {
+    background: var(--accent); color: #06231a; border: none; font-weight: 700;
+    padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 13.5px;
+  }
+  button.act:disabled { opacity: .45; cursor: not-allowed; }
+  button.ghost {
+    background: transparent; color: var(--accent); border: 1px solid var(--accent2);
+    padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 12.5px;
+  }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; }
+  .kpi .n { font-size: 24px; font-weight: 800; color: var(--accent); }
+  .kpi .l { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+  #toast {
+    position: fixed; top: 16px; right: 16px; z-index: 50; display: flex;
+    flex-direction: column; gap: 8px;
+  }
+  .toast {
+    background: var(--panel2); border: 1px solid var(--accent2);
+    padding: 11px 16px; border-radius: 8px; font-size: 13px; max-width: 340px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.4); animation: slidein .18s ease;
+  }
+  .toast.err { border-color: var(--danger); }
+  @keyframes slidein { from { transform: translateX(20px); opacity: 0; } }
+  /* auth modal */
+  #authModal {
+    position: fixed; inset: 0; background: rgba(3,12,15,.72); display: none;
+    align-items: center; justify-content: center; z-index: 40; padding: 16px;
+  }
+  #authModal.open { display: flex; }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    width: 100%; max-width: 400px; padding: 24px;
+  }
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+  .tabs button {
+    flex: 1; background: transparent; border: 1px solid var(--line); color: var(--muted);
+    padding: 8px; border-radius: 8px; cursor: pointer;
+  }
+  .tabs button.active { color: var(--accent); border-color: var(--accent2); background: var(--panel2); }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  .field input { width: 100%; }
+  .hidden { display: none !important; }
+  .summary-box {
+    background: #0d282e; border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px; white-space: pre-wrap; font-size: 13.5px; line-height: 1.55;
+  }
+  .util { font-size: 12px; color: var(--muted); margin-top: 8px; }
+  footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px; }
+  @media (max-width: 640px) {
+    main { padding: 12px; }
+    th:nth-child(2), td:nth-child(2) { display: none; } /* hide airline col on mobile */
+    header { padding: 10px 12px; }
+    .sub { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">Fly<span>Rank</span></div>
+    <div class="sub">Flight deal radar · backend capstone</div>
+  </div>
+  <nav>
+    <button data-view="deals" class="active">Deals</button>
+    <button data-view="ai">AI Briefing</button>
+    <button data-view="reports">Reports</button>
+    <button data-view="jobs">Jobs</button>
+    <button data-view="watch">Watchlist</button>
+  </nav>
+  <div>
+    <button id="authBtn">Sign in</button>
+  </div>
+</header>
+
+<main>
+  <div id="toast"></div>
+
+  <!-- DEALS VIEW -->
+  <section id="view-deals">
+    <div class="row" style="margin-bottom:16px;gap:8px">
+      <input id="fOrigin" placeholder="Origin, e.g. LHR" style="width:100px" maxlength="3" />
+      <input id="fDest" placeholder="Destination, e.g. JFK" style="width:130px" maxlength="3" />
+      <input id="fAirline" placeholder="Airline (optional)" style="width:150px" />
+      <input id="fMax" placeholder="Max $ (optional)" style="width:110px" type="number" min="0" />
+      <select id="fSort">
+        <option value="value">Sort: Best value</option>
+        <option value="price">Sort: Cheapest</option>
+        <option value="departure">Sort: Departure</option>
+      </select>
+      <button class="act" onclick="loadDeals()">Search deals</button>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Ranked deals</h2>
+        <span class="muted" id="cacheNote"></span>
+      </div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Airline</th><th>Route</th><th>Departure</th>
+            <th>Price</th><th>Value</th><th>vs Avg</th><th>Seats</th><th></th>
+          </tr></thead>
+          <tbody id="dealRows">
+            <tr><td colspan="9" class="muted">Loading deals…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- AI VIEW -->
+  <section id="view-ai" class="hidden">
+    <div class="panel">
+      <h2>AI deal briefing</h2>
+      <p class="muted" style="margin-bottom:12px">
+        Summarize the top deals with an LLM. Works out of the box with a local
+        summarizer; set <code>LLM_API_KEY</code> to use a real model. Every call is
+        logged with token usage and cost.
+      </p>
+      <div class="row" style="margin-bottom:12px">
+        <input id="aiQ" placeholder="e.g. LHR" style="width:120px" maxlength="3" />
+        <input id="aiDest" placeholder="e.g. JFK" style="width:120px" maxlength="3" />
+        <input id="aiLimit" placeholder="Top N (default 15)" style="width:140px" type="number" min="1" max="25" value="15" />
+        <button class="act" onclick="summarize()">Generate briefing</button>
+      </div>
+      <div class="summary-box" id="aiOut">Click "Generate briefing" to see a summary of the current ranked deals.</div>
+      <div class="util" id="aiMeta"></div>
+    </div>
+  </section>
+
+  <!-- REPORTS VIEW -->
+  <section id="view-reports" class="hidden">
+    <div class="panel">
+      <h2>Weekly deal report (PDF)</h2>
+      <p class="muted" style="margin-bottom:12px">
+        A real PDF generated server-side (pure Python, no external libraries):
+        stats block + ranked deals table. Requires sign-in.
+      </p>
+      <button class="act" onclick="downloadReport()">Download weekly PDF report</button>
+      <div class="util" id="reportNote"></div>
+    </div>
+  </section>
+
+  <!-- JOBS VIEW -->
+  <section id="view-jobs" class="hidden">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;margin-bottom:10px">
+        <h2 style="margin:0">Background &amp; cron jobs</h2>
+        <button class="ghost" onclick="triggerRefresh()">Trigger price refresh now</button>
+      </div>
+      <p class="muted" style="margin-bottom:12px">
+        A scheduler thread runs <code>daily_price_refresh</code> (cron
+        <code>30 8 * * *</code>) off the request path; the button runs the same job
+        in a background thread. Every run is recorded below.
+      </p>
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Status</th><th>Detail</th><th>Started</th></tr></thead>
+        <tbody id="jobRows"><tr><td colspan="5" class="muted">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- WATCHLIST VIEW -->
+  <section id="view-watchlist" class="hidden">
+    <div class="panel">
+      <h2>Your watchlist</h2>
+      <p class="muted" style="margin-bottom:12px">Deals you saved from the deals board (requires sign-in).</p>
+      <table>
+        <thead><tr><th>#</th><th>Airline</th><th>Route</th><th>Price</th><th>Value</th><th></th></tr></thead>
+        <tbody id="watchRows"><tr><td colspan="6" class="muted">Sign in and use the ☆ button on deals to build this list.</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>FlyRank · Your 10x Solution capstone · $0 stack, no credit card · Python standard library only</footer>
+
+<!-- AUTH MODAL -->
+<div id="authModal">
+  <div class="card">
+    <div class="tabs">
+      <button id="tabLogin" class="active" onclick="setTab('login')">Sign in</button>
+      <button id="tabRegister" onclick="setTab('register')">Register</button>
+    </div>
+    <div class="field"><label for="inName">Name</label><input id="inName" placeholder="Your name" /></div>
+    <div class="field"><label for="inEmail">Email</label><input id="inEmail" placeholder="you@example.com" type="email" /></div>
+    <div class="field"><label for="inPw">Password</label><input id="inPw" placeholder="Min 8 characters" type="password" /></div>
+    <div class="field" id="demoHint" style="display:none">
+      <span class="muted">Demo account: <code>demo@flyrank.dev</code> / <code>demo1234</code></span>
+    </div>
+    <button class="act" id="authSubmit" style="width:100%" onclick="submitAuth()">Sign in</button>
+  </div>
+</div>
+
+<script>
+const API = "";
+let token = localStorage.getItem("flyrank_token") || null;
+let me = null;
+let authMode = "login";
+const $ = (id) => document.getElementById(id);
+
+function toast(msg, err) {
+  const el = document.createElement("div");
+  el.className = "toast" + (err ? " err" : "");
+  el.textContent = msg;
+  $("toast").appendChild(el);
+  setTimeout(() => el.remove(), 4200);
+}
+
+async function api(path, opts = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (token) headers["Authorization"] = "Bearer " + token;
+  const res = await fetch(API + path, { ...opts, headers });
+  let data = null;
+  const ct = res.headers.get("content-type") || "";
+  if (ct.includes("application/json")) data = await res.json();
+  else if (ct.includes("application/pdf")) return { ok: res.ok, status: res.status, blob: await res.blob() };
+  if (!res.ok) throw new Error((data && data.error) || ("HTTP " + res.status));
+  return { ok: true, status: res.status, data, res };
+}
+
+/* ---------- auth ---------- */
+function currentUserLabel() {
+  return me ? (me.name || me.email) : null;
+}
+function setTab(mode) {
+  authMode = mode;
+  $("tabLogin").classList.toggle("active", mode === "login");
+  $("tabRegister").classList.toggle("active", mode === "register");
+  $("inName").parentElement.style.display = mode === "register" ? "" : "none";
+  $("authSubmit").textContent = mode === "login" ? "Sign in" : "Create account";
+  $("demoHint").style.display = mode === "login" ? "" : "none";
+}
+function openAuth(mode) {
+  authMode = mode || (me ? "login" : "login");
+  setTab(authMode);
+  $("authModal").classList.add("open");
+}
+function closeAuth() { $("authModal").classList.remove("open"); }
+async function submitAuth() {
+  const email = $("inEmail").value.trim(), pw = $("inPw").value;
+  const name = $("inName").value.trim();
+  $("authSubmit").disabled = true;
+  try {
+    if (authMode === "register") {
+      if (name.length < 2) throw new Error("Name required (min 2 chars)");
+      const r = await api("/api/auth/register", { method: "POST", body: JSON.stringify({ email, password: pw, name }) });
+      token = r.data.token; me = r.data.user;
+    } else {
+      const r = await api("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password: pw }) });
+      token = r.data.token; me = r.data.user;
+    }
+    localStorage.setItem("flyrank_token", token);
+    closeAuth();
+    renderAuth();
+    toast("Signed in as " + me.email);
+    loadWatchlist();
+  } catch (e) { toast(e.message, true); }
+  finally { $("authSubmit").disabled = false; }
+}
+async function signOut() {
+  try { await api("/api/auth/logout", { method: "POST" }); } catch (e) {}
+  token = null; me = null; localStorage.removeItem("flyrank_token");
+  renderAuth(); toast("Signed out");
+}
+function renderAuth() {
+  const btn = $("authBtn");
+  if (me) { btn.textContent = "Sign out (" + (me.name || me.email) + ")"; btn.onclick = signOut; }
+  else { btn.textContent = "Sign in"; btn.onclick = () => openAuth("login"); }
+  document.querySelectorAll(".need-auth").forEach(el => el.style.display = me ? "" : "none");
+}
+
+/* ---------- views ---------- */
+document.querySelectorAll("nav button").forEach(b => {
+  b.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    ["deals", "ai", "reports", "jobs", "watch"].forEach(v =>
+      $("view-" + v).classList.toggle("hidden", v !== b.dataset.view));
+    if (b.dataset.view === "jobs") loadJobs();
+    if (b.dataset.view === "watch") loadWatchlist();
+  });
+});
+
+/* ---------- deals ---------- */
+async function loadDeals() {
+  const q = new URLSearchParams();
+  const o = $("fOrigin").value.trim().toUpperCase(), d = $("fDest").value.trim().toUpperCase();
+  const a = $("fAirline").value.trim(), m = $("fMax").value.trim();
+  if (o) q.set("origin", o);
+  if (d) q.set("destination", d);
+  if (a) q.set("airline", a);
+  if (m) q.set("max_price", m);
+  q.set("sort", $("fSort").value);
+  q.set("limit", "50");
+  try {
+    const { data, res } = await api("/api/deals?" + q.toString());
+    renderDeals(data.deals);
+    $("cacheNote").textContent = "cache: " + (res.headers.get("x-cache") || data.cache);
+    const kpis = $("kpis");
+    const minV = data.deals.length ? Math.min(...data.deals.map(x => x.price)) : 0;
+    const maxV = data.deals.length ? Math.max(...data.deals.map(x => x.price)) : 0;
+    const top = data.deals[0];
+    kpis.innerHTML = `
+      <div class="kpi"><div class="n">${data.total}</div><div class="l">Deals found</div></div>
+      <div class="kpi"><div class="n">$${minV.toFixed(0)}</div><div class="l">Lowest price</div></div>
+      <div class="kpi"><div class="n">$${maxV.toFixed(0)}</div><div class="l">Highest price</div></div>
+      <div class="kpi"><div class="n">${top ? top.value_score.toFixed(0) : "-"}</div><div class="l">Top value score</div></div>`;
+  } catch (e) { toast(e.message, true); }
+}
+function renderDeals(deals) {
+  const tb = $("dealRows");
+  if (!deals.length) { tb.innerHTML = '<tr><td colspan="9" class="muted">No deals match your filters.</td></tr>'; return; }
+  tb.innerHTML = deals.map(d => `
+    <tr>
+      <td class="muted">${d.rank}</td>
+      <td>${d.airline}</td>
+      <td><b>${d.origin}</b> &rarr; <b>${d.destination}</b></td>
+      <td>${d.departure_date}</td>
+      <td class="price">$${Number(d.price).toFixed(0)}</td>
+      <td class="score ${d.value_score >= 70 ? "hot" : ""}">${d.value_score.toFixed(0)}</td>
+      <td class="muted">${d.vs_route_avg > 0 ? "+" : ""}${d.vs_route_avg.toFixed(0)}%</td>
+      <td>${d.seats_left} <span class="badge ${d.seats_left <= 4 ? "red" : d.seats_left <= 10 ? "yellow" : "green"}">${d.seats_left <= 4 ? "low" : "ok"}</span></td>
+      <td>${me ? `<button class="ghost" onclick="watch(${d.id})">☆ watch</button>` : ""}</td>
+    </tr>`).join("");
+}
+
+/* ---------- watchlist ---------- */
+async function watch(id) {
+  if (!me) { openAuth(); return; }
+  try {
+    await api("/api/deals/" + id + "/watch", { method: "POST", body: "{}" });
+    toast("Deal " + id + " added to watchlist");
+  } catch (e) { toast(e.message, true); }
+}
+async function unwatch(id) {
+  try { await api("/api/deals/" + id + "/watch", { method: "DELETE" }); toast("Removed"); loadWatchlist(); }
+  catch (e) { toast(e.message, true); }
+}
+async function loadWatchlist() {
+  const tb = $("watchRows");
+  if (!me) { tb.innerHTML = '<tr><td colspan="6" class="muted">Sign in to see your watchlist.</td></tr>'; return; }
+  try {
+    const { data } = await api("/api/watchlist");
+    if (!data.deals.length) { tb.innerHTML = '<tr><td colspan="6" class="muted">No watched deals yet. Use ☆ on the deals board.</td></tr>'; return; }
+    tb.innerHTML = data.deals.map(d => `
+      <tr>
+        <td class="muted">${d.rank}</td>
+        <td>${d.airline}</td>
+        <td><b>${d.origin}</b> &rarr; <b>${d.destination}</b> · ${d.departure_date}</td>
+        <td class="price">$${Number(d.price).toFixed(0)}</td>
+        <td class="score">${d.value_score.toFixed(0)}</td>
+        <td><button class="ghost" onclick="unwatch(${d.id})">Remove</button></td>
+      </tr>`).join("");
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- ai ---------- */
+async function summarize() {
+  if (!me) { openAuth(); toast("Sign in to use the AI briefing"); return; }
+  $("aiOut").textContent = "Generating (this is logged with cost)…";
+  try {
+    const body = {};
+    const o = $("aiQ").value.trim().toUpperCase(), d = $("aiDest").value.trim().toUpperCase();
+    const n = parseInt($("aiLimit").value || "15", 10);
+    if (o) body.origin = o;
+    if (d) body.destination = d;
+    const { data } = await api("/api/deals/summarize", { method: "POST", body: JSON.stringify(body) });
+    $("aiOut").textContent = data.summary;
+    $("aiMeta").textContent = `source: ${data.source} · model: ${data.model} · tokens: ${data.prompt_tokens} in / ${data.completion_tokens} out · est. cost $${data.cost_usd}`;
+  } catch (e) { $("aiOut").textContent = "Error: " + e.message; }
+}
+
+/* ---------- reports ---------- */
+async function downloadReport() {
+  if (!me) { openAuth(); toast("Sign in to download the report"); return; }
+  try {
+    const r = await api("/api/reports/weekly");
+    if (!r.ok) throw new Error("Report failed");
+    const url = URL.createObjectURL(r.blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "flyrank-weekly-report.pdf"; a.click();
+    URL.revokeObjectURL(url);
+    $("reportNote").textContent = "Downloaded — the PDF is generated server-side in pure Python.";
+    toast("PDF report downloaded");
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- jobs ---------- */
+async function loadJobs() {
+  if (!me) { $("jobRows").innerHTML = '<tr><td colspan="5" class="muted">Sign in to see job runs.</td></tr>'; return; }
+  try {
+    const { data } = await api("/api/jobs");
+    if (!data.jobs.length) { $("jobRows").innerHTML = '<tr><td colspan="5" class="muted">No job runs yet — trigger one or wait for the daily cron.</td></tr>'; return; }
+    $("jobRows").innerHTML = data.jobs.map(j => `
+      <tr>
+        <td class="muted">#${j.id}</td>
+        <td>${j.name}</td>
+        <td><span class="badge ${j.status === "ok" ? "green" : j.status === "running" ? "yellow" : "red"}">${j.status}</span></td>
+        <td class="muted">${j.detail || ""}</td>
+        <td class="muted">${j.started_at}</td>
+      </tr>`).join("");
+  } catch (e) { toast(e.message, true); }
+}
+async function triggerRefresh() {
+  if (!me) { openAuth(); toast("Sign in to trigger jobs"); return; }
+  try {
+    await api("/api/jobs/refresh", { method: "POST", body: "{}" });
+    toast("Price refresh started in background (202)");
+    setTimeout(loadJobs, 1500);
+  } catch (e) { toast(e.message, true); }
+}
+
+/* ---------- boot ---------- */
+(async function boot() {
+  renderAuth();
+  if (token) {
+    try {
+      const r = await api("/api/me");
+      me = r.data.user;
+      renderAuth();
+    } catch (e) { token = null; localStorage.removeItem("flyrank_token"); }
+  }
+  if (!me) { setTab("login"); $("demoHint").style.display = ""; }
+  await loadDeals();
+})();
+</script>
+</body>
+</html>
