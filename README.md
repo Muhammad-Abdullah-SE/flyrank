@@ -1,4 +1,4 @@
-# FlyRank — "Your 10x Solution" capstone
+# FlyRank — "10x Solution" capstone
 
 No external dependencies. Everything runs on the Python 3.9+ standard library
 (HTTP server, SQLite, hashing, JSON, PDF generation). Nothing to install —
